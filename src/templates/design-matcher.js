@@ -203,20 +203,56 @@ export function getDesignContext(designSystem) {
   if (!content) return '';
 
   const lines = content.split('\n');
-  // Get first 200 lines — covers colors, typography, spacing, components
-  const trimmed = lines.slice(0, 200).join('\n');
+  // Extract key sections: colors, typography, spacing, components (skip verbose explanations)
+  const keyLines = [];
+  let inSection = false;
+  let lineCount = 0;
+  const maxLines = 300;
+
+  for (const line of lines) {
+    if (lineCount >= maxLines) break;
+    // Prioritize lines with actual design values
+    if (line.match(/^#{1,3}\s/) || line.match(/#[0-9a-fA-F]{3,8}/) || line.match(/\d+px/) || line.match(/font|color|spacing|radius|shadow|padding|margin/i)) {
+      keyLines.push(line);
+      inSection = true;
+      lineCount++;
+    } else if (inSection && line.trim()) {
+      keyLines.push(line);
+      lineCount++;
+    } else if (!line.trim()) {
+      inSection = false;
+      if (keyLines.length > 0 && keyLines[keyLines.length - 1] !== '') {
+        keyLines.push('');
+        lineCount++;
+      }
+    }
+  }
+
+  const trimmed = keyLines.join('\n').slice(0, 6000);
+
+  // Extract concrete colors for quick reference
+  const colors = extractColorsFromDesign(content);
+  const colorSummary = colors ? `
+QUICK COLOR REFERENCE (use these exact values):
+  Primary: ${colors.primary}
+  Secondary/Dark: ${colors.secondary}
+  Accent: ${colors.accent}
+  Text: ${colors.ink}
+  Background: ${colors.canvas}
+  Muted text: ${colors.mute}` : '';
 
   return `DESIGN SYSTEM: "${designSystem.name}"-inspired design
-Apply this design system's visual language EXACTLY — colors, typography, spacing, border-radius, and component styling:
+Apply this design system's visual language — colors, typography, spacing, and component styling:
+${colorSummary}
 
 ${trimmed}
 
 KEY DESIGN RULES:
-- Use these EXACT hex color values in Tailwind arbitrary values like bg-[#533afd] or text-[#0d253d]
-- Match the font sizes, weights, and letter-spacing for headings vs body text
-- Use the border-radius values (rounded-[4px], rounded-[8px], etc.)
-- Follow button styling (padding, rounded, colors)
-- Apply the overall aesthetic — if the system is minimal, be minimal; if bold, be bold
+- Use EXACT hex color values in Tailwind arbitrary values like bg-[${colors?.primary || '#533afd'}]
+- Match font sizes, weights, and letter-spacing for headings vs body
+- Use consistent border-radius values throughout
+- Follow button styling (padding, rounded, colors, hover states)
+- Apply the overall aesthetic: ${designSystem.name} is ${designSystem.name === 'nike' ? 'bold and energetic' : designSystem.name === 'apple' ? 'minimal and premium' : designSystem.name === 'stripe' ? 'clean and professional' : designSystem.name === 'framer' ? 'creative and modern' : designSystem.name === 'airbnb' ? 'warm and welcoming' : 'modern and polished'}
 - Use consistent spacing from this system`;
 }
 

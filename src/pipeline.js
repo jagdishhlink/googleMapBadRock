@@ -165,7 +165,7 @@ try {
 
 async function aiVisualReview(projectDir, state, config) {
   let fixes = 0;
-  let score = 8;
+  let score = 6;
   const testPort = 4569;
   let serverProcess;
 
@@ -244,10 +244,10 @@ If everything looks good (score 8+), return {"score": 9, "issues": [], "overall"
       if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
       review = JSON.parse(cleaned.trim());
     } catch {
-      review = { score: 7, issues: [], overall: 'Could not parse review' };
+      review = { score: 6, issues: [], overall: 'Could not parse review — assuming needs fixes' };
     }
 
-    score = review.score || 7;
+    score = review.score || 6;
     console.log(chalk.yellow(`    AI Score: ${score}/10 — ${review.overall}`));
 
     // Apply fixes for critical issues (score < 8)

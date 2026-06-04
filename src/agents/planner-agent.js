@@ -182,7 +182,21 @@ SEO STATUS:
         modeContext = 'MODE: NEW BUILD — No official website exists. Create a completely unique website from scratch.';
       }
 
+      // Build industry preset context (this guides the LLM on WHAT pages/sections to create)
+      const presetContext = `INDUSTRY PRESET (use as minimum structure — you can add MORE but never less):
+  Required Pages: ${preset.pages.join(', ')}
+  Required Features: ${preset.features.join(', ')}
+  Design Style: ${preset.style}
+  Homepage Sections: ${preset.sections?.home?.join(', ') || 'hero, services, testimonials, cta'}
+  ${Object.entries(preset.sections || {}).filter(([k]) => k !== 'home').map(([page, sections]) => `${page} Sections: ${sections.join(', ')}`).join('\n  ')}`;
+
+      // Filter to only positive reviews (4+ stars)
+      const positiveReviews = (bd.reviews || []).filter(r => r.rating >= 4);
+      const reviewsSummary = positiveReviews.slice(0, 3).map(r => r.text).join(' | ') || 'No positive reviews';
+
       const userMessage = `${modeContext}
+
+${presetContext}
 
 Business Name: ${bd.name}
 Industry: ${bd.industry}
@@ -194,10 +208,10 @@ Hours: ${JSON.stringify(bd.hours)}
 Rating: ${bd.rating}/5 (${bd.reviewCount} reviews)
 Description: ${bd.description}
 Price Level: ${bd.priceLevel}
-Reviews Summary: ${bd.reviews?.slice(0, 3).map(r => r.text).join(' | ') || 'No reviews'}
+Top Reviews (4+ stars only): ${reviewsSummary}
 
-Industry context: ${preset.style} style, typical pages: ${preset.pages.join(', ')}
-
+IMPORTANT: You MUST include at least these pages: ${preset.pages.join(', ')}
+The design style should be "${preset.style}" — match this mood in your website_dna.
 Create a UNIQUE website strategy with website_dna. This must NOT look like a template.
 The design should feel custom-built by a premium agency.`;
 

@@ -131,6 +131,20 @@ export class VerifierAgent extends BaseAgent {
       }
     }
 
+    // Check business data is actually used in generated files
+    const allContent = state.generatedFiles.files.map(f => f.content).join('\n');
+    const bd = state.businessData;
+
+    if (bd.phone && !allContent.includes(bd.phone)) {
+      issues.push(createVerificationIssue('src/components/Header.jsx', 0, `Business phone "${bd.phone}" not found in any generated file`, 'warning'));
+    }
+    if (bd.name && !allContent.toLowerCase().includes(bd.name.toLowerCase())) {
+      issues.push(createVerificationIssue('src/app/layout.jsx', 0, `Business name "${bd.name}" not found in generated files`, 'warning'));
+    }
+    if (bd.address && !allContent.includes(bd.address.split(',')[0])) {
+      issues.push(createVerificationIssue('src/components/Footer.jsx', 0, `Business address not found in generated files`, 'warning'));
+    }
+
     return issues;
   }
 

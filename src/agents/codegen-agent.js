@@ -509,13 +509,25 @@ ${imgDescriptions}
 ${realImageCount < 10 ? `  /images/business-${realImageCount + 1}.jpg to business-10.jpg — industry stock photos` : ''}
 ALL images have onError fallback — if they fail to load, a gradient placeholder will show automatically.`;
     } else {
-      imageContext = `Images (use these paths): ${imageList.join(', ')}
-ALL images have onError fallback — if they fail to load, a gradient placeholder will show automatically.`;
+      imageContext = `IMAGE PLACEMENT GUIDE (use these paths with Next.js Image):
+  /images/business-1.jpg — use in HERO section (full-width, above the fold)
+  /images/business-2.jpg — use in ABOUT/STORY section
+  /images/business-3.jpg — use in SERVICES section or feature highlight
+  /images/business-4.jpg — use in GALLERY or portfolio showcase
+  /images/business-5.jpg — use in TESTIMONIALS background or team section
+  /images/business-6.jpg — use in secondary GALLERY or product display
+  /images/business-7.jpg — use in WHY CHOOSE US or trust section
+  /images/business-8.jpg — use in PROCESS/HOW IT WORKS section
+  /images/business-9.jpg — use in CONTACT section or map area
+  /images/business-10.jpg — use in CTA banner or footer
+All images are industry-matched stock photos. If they fail to load, gradient placeholder shows.`;
     }
 
-    const reviewsSection = (bd.reviews && bd.reviews.length > 0)
-      ? bd.reviews.map(r => `- "${r.text}" — ${r.author} (${r.rating}/5)`).join('\n')
-      : 'No reviews available';
+    // Only use positive reviews (4+ stars) as testimonials
+    const positiveReviews = (bd.reviews || []).filter(r => r.rating >= 4);
+    const reviewsSection = (positiveReviews.length > 0)
+      ? positiveReviews.map(r => `- "${r.text}" — ${r.author} (${r.rating}/5)`).join('\n')
+      : 'No positive reviews available — generate trust signals from business data instead (years in business, rating, location)';
 
     // Get design system for visual reference
     const designSystem = matchDesignSystem(bd.industry, bd.name);

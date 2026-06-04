@@ -61,7 +61,9 @@ export class ContentAgent extends BaseAgent {
 
     try {
       const bd = state.businessData;
-      const reviews = (bd.reviews || []).map(r => `"${r.text}" — ${r.author} (${r.rating}★)`).join('\n');
+      // Only use positive reviews (4+ stars) — never show negative reviews as testimonials
+      const positiveReviews = (bd.reviews || []).filter(r => r.rating >= 4);
+      const reviews = positiveReviews.map(r => `"${r.text}" — ${r.author} (${r.rating}★)`).join('\n');
 
       let existingContentContext = '';
       if (state.websiteMode === WebsiteMode.REDESIGN && state.existingWebsite) {
