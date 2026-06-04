@@ -1,0 +1,6 @@
+node_modules/
+output/
+images/
+.env
+scrapper_google.json
+*.log
