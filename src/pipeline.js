@@ -124,7 +124,38 @@ try {
       aiAttempts++;
     }
 
-    // Step 7: Push to GitHub only after all checks pass
+    // Step 7: Build check before deploy
+    console.log(chalk.yellow('  Running build check...'));
+    try {
+      execSync('npx next build', { cwd: projectDir, stdio: 'pipe', timeout: 120000 });
+      console.log(chalk.green('  ✓ Build passed'));
+    } catch (buildErr) {
+      console.log(chalk.yellow('  ⚠ Build failed — fixing...'));
+      const buildOutput = (buildErr.stderr?.toString() || buildErr.stdout?.toString() || '');
+      const fileMatch = buildOutput.match(/\.\/([^\s:]+\.jsx)/);
+      if (fileMatch) {
+        const brokenFile = path.join(projectDir, fileMatch[1]);
+        if (fs.existsSync(brokenFile)) {
+          let fc = fs.readFileSync(brokenFile, 'utf-8');
+          // Fix unescaped < in text content
+          fc = fc.replace(/(>)(<\s+\d[^<]*?)(<\/)/g, (m, open, text, close) => `${open}{"${text}"}${close}`);
+          // Fix styled-jsx missing use client
+          if (fc.includes('<style jsx') && !fc.includes("'use client'")) fc = "'use client';\n\n" + fc;
+          // Fix missing use client for interactive
+          if ((fc.includes('useState') || fc.includes('onClick')) && !fc.includes("'use client'")) fc = "'use client';\n\n" + fc;
+          fs.writeFileSync(brokenFile, fc, 'utf-8');
+          console.log(chalk.yellow(`    Fixed: ${fileMatch[1]}`));
+        }
+      }
+      try {
+        execSync('npx next build', { cwd: projectDir, stdio: 'pipe', timeout: 120000 });
+        console.log(chalk.green('  ✓ Build passed (after fix)'));
+      } catch {
+        console.log(chalk.yellow('  ⚠ Build still failing — deploying anyway'));
+      }
+    }
+
+    // Step 8: Push to GitHub
     console.log(chalk.yellow('\n  Pushing to GitHub...'));
     const repoUrl = await pushToGitHub(projectDir, state.businessData.name);
     if (repoUrl) {
@@ -649,8 +680,8 @@ function fixAllPages(projectDir, state) {
       changed = true;
     }
 
-    // Fix: Add 'use client' if interactive
-    if ((content.includes('onClick') || content.includes('onChange') || content.includes('useState') || content.includes('useEffect')) && !content.includes("'use client'") && !content.includes('"use client"')) {
+    // Fix: Add 'use client' if interactive or styled-jsx
+    if ((content.includes('onClick') || content.includes('onChange') || content.includes('useState') || content.includes('useEffect') || content.includes('<style jsx') || content.includes('style jsx')) && !content.includes("'use client'") && !content.includes('"use client"')) {
       content = "'use client';\n\n" + content;
       changed = true;
     }
@@ -663,6 +694,17 @@ function fixAllPages(projectDir, state) {
 
     if (changed) {
       fs.writeFileSync(filePath, content, 'utf-8');
+      fixCount++;
+    }
+  }
+
+  // CRITICAL: Ensure layout.jsx imports globals.css (Tailwind won't work without it)
+  const layoutPath = path.join(projectDir, 'src', 'app', 'layout.jsx');
+  if (fs.existsSync(layoutPath)) {
+    let layoutContent = fs.readFileSync(layoutPath, 'utf-8');
+    if (!layoutContent.includes('globals.css')) {
+      layoutContent = "import './globals.css';\n" + layoutContent;
+      fs.writeFileSync(layoutPath, layoutContent, 'utf-8');
       fixCount++;
     }
   }
